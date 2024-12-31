@@ -316,19 +316,24 @@ unsafe impl Send for Font {}
 
 impl Font {
     fn metrics(&self) -> Metrics {
-        let average_advance = self.glyph_advance('0');
+        let units_per_em = self.ct_font.units_per_em();
+        let units_per_point = (units_per_em as f64) / self.ct_font.pt_size();
 
-        let ascent = self.ct_font.ascent().round();
-        let descent = self.ct_font.descent().round();
-        let leading = self.ct_font.leading().round();
-        let line_height = ascent + descent + leading;
+        let average_advance = self.glyph_advance('0') * units_per_point;
+
+        let ascent = self.ct_font.ascent();
+        let descent = self.ct_font.descent();
+        let leading = self.ct_font.leading();
+
+        let line_height = (ascent + descent + leading) * units_per_point;
 
         // Strikeout and underline metrics.
         // CoreText doesn't provide strikeout so we provide our own.
-        let underline_position = self.ct_font.underline_position() as f32;
-        let underline_thickness = self.ct_font.underline_thickness() as f32;
-        let strikeout_position = (line_height / 2. - descent) as f32;
+        let underline_position = (self.ct_font.underline_position() * units_per_point) as f32;
+        let underline_thickness = (self.ct_font.underline_thickness() * units_per_point) as f32;
+
         let strikeout_thickness = underline_thickness;
+        let strikeout_position = ((line_height / 2. - descent) * units_per_point) as f32;
 
         Metrics {
             average_advance,
